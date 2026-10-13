@@ -1,0 +1,10 @@
+{
+  "name": "Agent IA Testeur de Logiciels",
+  "app_id": "5b4213162",
+  "url": "https://apps.abacus.ai/chatllm/?appId=5b4213162",
+  "language": "fr",
+  "role": "Expert QA / Assurance Qualité logicielle",
+  "focus": "Tests fonctionnels",
+  "capabilities": ["tests fonctionnels", "tests API REST", "tests web", "analyse de code", "rapports de tests"],
+  "platform": "Abacus.AI ChatLLM"
+}
