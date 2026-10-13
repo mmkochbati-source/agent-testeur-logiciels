@@ -21,6 +21,15 @@
         <input id="chat-input" type="text" placeholder="Ex. : propose un plan de tests pour un panier e-commerce" required />
         <button type="submit" class="btn">Envoyer</button>
       </form>
+      <details class="dev-panel">
+        <summary>⚙️ Mode développeur : code de l'agent → Pull Request GitHub</summary>
+        <label class="check"><input id="dev-mode" type="checkbox" /> Activer le mode développeur
+          (l'agent indique le chemin de chaque fichier)</label>
+        <label class="check"><input id="auto-pr" type="checkbox" /> Créer la PR automatiquement dès que
+          l'agent fournit du code</label>
+        <label for="pipeline-key">Clé pipeline (PIPELINE_SECRET, enregistrée dans ce navigateur)</label>
+        <input id="pipeline-key" type="password" autocomplete="off" />
+      </details>
       <a id="agent-link" class="link" target="_blank" rel="noopener">Ouvrir l'agent en plein écran ↗</a>
     </section>
 

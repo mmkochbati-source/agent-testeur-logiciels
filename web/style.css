@@ -35,3 +35,11 @@ footer { text-align: center; padding: 1.5rem; color: #6b7285; font-size: .85rem;
 .ia-text { background: #f7f4fd; border-left: 4px solid #7b3fd1; padding: .8rem 1rem; border-radius: 6px;
            overflow-x: auto; }
 .bubble table, .ia-text table { font-size: .85rem; }
+
+.dev-panel { margin-top: .8rem; font-size: .9rem; }
+.dev-panel summary { cursor: pointer; font-weight: 600; }
+.dev-panel input[type="password"] { width: 100%; }
+.check { display: flex; gap: .4rem; align-items: center; font-weight: 400; margin: .4rem 0; }
+.pr-box { align-self: flex-start; background: #fff8e6; border: 1px solid #f0d78c; border-radius: 8px;
+          padding: .6rem .8rem; font-size: .88rem; max-width: 90%; }
+.pr-box .btn { margin-top: .5rem; }

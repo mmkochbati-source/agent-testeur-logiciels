@@ -87,6 +87,62 @@ document.getElementById("web-form").addEventListener("submit", (e) => {
 const history = [];
 const chatLog = document.getElementById("chat-log");
 
+// --- Pipeline : code fourni par l'agent -> Pull Request GitHub ---
+const devMode = document.getElementById("dev-mode");
+const autoPr = document.getElementById("auto-pr");
+const keyInput = document.getElementById("pipeline-key");
+for (const [el, key] of [[devMode, "devMode"], [autoPr, "autoPr"]]) {
+  el.checked = localStorage.getItem(key) === "1";
+  el.addEventListener("change", () => localStorage.setItem(key, el.checked ? "1" : "0"));
+}
+keyInput.value = localStorage.getItem("pipelineKey") || "";
+keyInput.addEventListener("change", () => localStorage.setItem("pipelineKey", keyInput.value.trim()));
+
+async function pipeline(payload) {
+  const res = await fetch(`${backend}/api/pipeline/pr`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Pipeline-Secret": keyInput.value.trim() },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.detail || `Erreur HTTP ${res.status}`);
+  return data;
+}
+
+// Après chaque réponse : détecte les fichiers ; propose (ou crée automatiquement) la PR.
+async function detectCode(reply, question, bubble) {
+  if (!devMode.checked || !reply.includes("```")) return;
+  let found;
+  try { found = await pipeline({ texte: reply, dry_run: true }); }
+  catch { return; } // aucun fichier avec chemin : réponse sans code à livrer
+  const box = document.createElement("div");
+  box.className = "pr-box";
+  const list = found.fichiers.map((f) => `<code>${f.replace(/</g, "&lt;")}</code>`).join(", ");
+  box.innerHTML = `<div>📦 ${found.fichiers.length} fichier(s) détecté(s) : ${list}</div>`;
+  const btn = document.createElement("button");
+  btn.className = "btn btn-ia";
+  btn.textContent = "Créer la Pull Request";
+  const status = document.createElement("div");
+  box.append(btn, status);
+  bubble.after(box);
+  const create = async () => {
+    btn.disabled = true;
+    status.textContent = "Création de la PR…";
+    try {
+      const pr = await pipeline({ texte: reply, titre: `Abacus : ${question.slice(0, 80)}`,
+                                  description: `Demande : ${question}` });
+      btn.remove();
+      status.innerHTML = `✅ <a href="${pr.url}" target="_blank" rel="noopener">PR n°${pr.numero}</a>
+        créée (branche <code>${pr.branche}</code>). La CI et la prévisualisation Vercel démarrent.`;
+    } catch (err) {
+      btn.disabled = false;
+      status.textContent = `Échec : ${err.message}`;
+    }
+  };
+  btn.addEventListener("click", create);
+  if (autoPr.checked) create();
+}
+
 function addBubble(text, isUser) {
   const div = document.createElement("div");
   div.className = `bubble ${isUser ? "user" : "agent"}`;
@@ -111,12 +167,13 @@ document.getElementById("chat-form").addEventListener("submit", async (e) => {
     const res = await fetch(`${backend}/api/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages: history }),
+      body: JSON.stringify({ messages: history, mode_dev: devMode.checked }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || `Erreur HTTP ${res.status}`);
     history.push({ is_user: false, text: data.reponse });
     pending.innerHTML = markdown(data.reponse);
+    detectCode(data.reponse, text, pending);
   } catch (err) {
     history.pop();
     pending.textContent = `Échec : ${err.message}`;
