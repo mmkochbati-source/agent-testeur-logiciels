@@ -1,0 +1,24 @@
+{
+  "_commentaire": "Source de vérité de la configuration NON secrète. Toute modification fusionnée sur main est envoyée automatiquement à Railway et Vercel par le workflow « Déploiement ».",
+  "railway": {
+    "ABACUS_DEPLOYMENT_ID": "46d530766",
+    "ALLOWED_ORIGINS": "https://agent-testeur-logiciels.vercel.app",
+    "ALLOWED_ORIGIN_REGEX": "^https://agent-testeur-logiciels(-[a-z0-9-]+)?\\.vercel\\.app$",
+    "REQUEST_TIMEOUT": "15",
+    "GITHUB_REPO": "mmkochbati-source/agent-testeur-logiciels"
+  },
+  "railway_secrets": {
+    "_commentaire": "Nom de la variable Railway -> nom du secret GitHub. Envoyé seulement si le secret GitHub existe.",
+    "ABACUS_API_KEY": "ABACUS_API_KEY",
+    "GITHUB_TOKEN": "PIPELINE_GITHUB_TOKEN",
+    "PIPELINE_SECRET": "PIPELINE_SECRET"
+  },
+  "vercel": {
+    "BACKEND_URL": "https://agent-testeur-logiciels-production.up.railway.app",
+    "AGENT_URL": "https://apps.abacus.ai/chatllm/?appId=5b4213162"
+  },
+  "verification": {
+    "backend_url": "https://agent-testeur-logiciels-production.up.railway.app",
+    "frontend_url": "https://agent-testeur-logiciels.vercel.app"
+  }
+}

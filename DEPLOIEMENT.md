@@ -57,3 +57,33 @@ cd web && python3 -m http.server 3000   # puis http://localhost:3000
 | POST | `/api/test/api` | `{ "url", "method", "headers", "body", "expected_status", "expected_keys" }` → statut, temps, JSON, champs attendus |
 
 Chaque réponse contient `cas` (ID, description, attendu, obtenu, PASS/FAIL) et `resume` (total, pass, fail, taux).
+
+## 4. Pipeline automatique (Abacus → GitHub → Railway + Vercel)
+
+```
+Agent Abacus (mode dev) ──► /api/pipeline/pr ──► Pull Request GitHub (branche abacus/…)
+                                                     │  CI : pytest + node --check + dry-run config
+                                                     ▼  fusion manuelle (revue humaine)
+                                                   main ──► workflow « Déploiement »
+                                                     ├─ deploy/sync_env.py : variables → Railway + Vercel
+                                                     └─ deploy/verify.py   : attend le bon commit + tests de fumée
+```
+
+1. **Interface** : ouvrir « ⚙️ Pipeline de développement », cocher *Mode développeur* (l'agent livre le code
+   avec les chemins de fichiers) et éventuellement *PR automatique*, puis saisir la clé `PIPELINE_SECRET`.
+   Chaque réponse contenant du code propose « Créer la Pull Request » (ou la crée seule).
+2. **Sécurité** : les chemins `.github/`, `.git/`, `.env*`, absolus ou avec `..` sont refusés ;
+   l'endpoint exige l'en-tête `X-Pipeline-Secret`. Les PR ne sont **jamais fusionnées automatiquement**.
+3. **Configuration** : `deploy/config.json` est la source de vérité des variables non secrètes ;
+   les secrets restent dans *GitHub → Settings → Secrets and variables → Actions*.
+
+| Secret GitHub | Rôle |
+|---|---|
+| `RAILWAY_TOKEN`, `RAILWAY_PROJECT_ID`, `RAILWAY_ENVIRONMENT_ID`, `RAILWAY_SERVICE_ID` | Mise à jour des variables Railway (redéploiement automatique) |
+| `VERCEL_TOKEN`, `VERCEL_PROJECT_ID`, `VERCEL_TEAM_ID` (facultatif), `VERCEL_DEPLOY_HOOK` (facultatif) | Mise à jour des variables Vercel + redéploiement |
+| `ABACUS_API_KEY` | Envoyée à Railway |
+| `PIPELINE_GITHUB_TOKEN` | Envoyé à Railway comme `GITHUB_TOKEN` (PAT fine-grained : *Contents* + *Pull requests* en écriture) |
+| `PIPELINE_SECRET` | Clé partagée interface ↔ backend pour créer les PR |
+
+Un fournisseur sans identifiants est ignoré (avertissement dans les logs) ; le workflow peut aussi être lancé
+à la main (*Actions → Déploiement → Run workflow*).

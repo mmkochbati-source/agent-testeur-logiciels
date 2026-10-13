@@ -6,10 +6,13 @@ Endpoints :
   POST /api/test/api     -> test d'un endpoint d'API REST avec assertions
   POST /api/chat         -> discussion avec l'agent Abacus.AI
   POST /api/analyse      -> exécute les tests puis les fait analyser par l'agent Abacus.AI
+  POST /api/pipeline/pr  -> transforme le code fourni par l'agent en Pull Request GitHub
 
 Variables d'environnement : ABACUS_API_KEY (requis pour /api/chat et /api/analyse),
-ABACUS_DEPLOYMENT_ID, ALLOWED_ORIGINS, REQUEST_TIMEOUT.
+GITHUB_TOKEN + PIPELINE_SECRET (requis pour /api/pipeline/pr), GITHUB_REPO,
+ABACUS_DEPLOYMENT_ID, ALLOWED_ORIGINS, ALLOWED_ORIGIN_REGEX, REQUEST_TIMEOUT.
 """
+import hmac
 import json
 import os
 import time
@@ -18,20 +21,27 @@ from urllib.parse import urljoin, urlparse
 
 import httpx
 from bs4 import BeautifulSoup
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Header, HTTPException
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+
+from pipeline import DEV_INSTRUCTION, create_pull_request, extract_files
 
 AGENT_URL = "https://apps.abacus.ai/chatllm/?appId=5b4213162"
 ABACUS_DEPLOYMENT_ID = os.getenv("ABACUS_DEPLOYMENT_ID", "46d530766")
 TIMEOUT = float(os.getenv("REQUEST_TIMEOUT", "15"))
 USER_AGENT = "AgentTesteurLogiciels/1.0"
+GITHUB_REPO = os.getenv("GITHUB_REPO", "mmkochbati-source/agent-testeur-logiciels")
+# Commit déployé (fourni automatiquement par Railway) — utilisé par la vérification post-déploiement.
+VERSION = os.getenv("RAILWAY_GIT_COMMIT_SHA", "local")
 
-app = FastAPI(title="Agent IA Testeur de Logiciels — API", version="1.0.0")
+app = FastAPI(title="Agent IA Testeur de Logiciels — API", version="1.1.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[o.strip() for o in os.getenv("ALLOWED_ORIGINS", "*").split(",")],
+    # Autorise aussi les prévisualisations Vercel des PR (ex. agent-testeur-logiciels-git-xxx.vercel.app).
+    allow_origin_regex=os.getenv("ALLOWED_ORIGIN_REGEX") or None,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -76,11 +86,19 @@ class ChatMessage(BaseModel):
 
 class ChatRequest(BaseModel):
     messages: list[ChatMessage] = Field(..., min_length=1)
+    mode_dev: bool = False  # demande à l'agent de livrer le code avec les chemins de fichiers
 
 
 class AnalyseRequest(BaseModel):
     web: Optional[WebTestRequest] = None
     api: Optional[ApiTestRequest] = None
+
+
+class PipelineRequest(BaseModel):
+    texte: str = Field(..., min_length=1, max_length=500_000)  # réponse de l'agent Abacus
+    titre: Optional[str] = Field(None, max_length=120)
+    description: Optional[str] = Field(None, max_length=5000)
+    dry_run: bool = False  # True : détecte seulement les fichiers, sans créer de PR
 
 
 def _ask_agent_sync(messages: list[dict]) -> str:
@@ -106,20 +124,51 @@ async def ask_agent(messages: list[dict]) -> str:
 @app.get("/")
 def root():
     return {"service": "Agent IA Testeur de Logiciels", "agent": AGENT_URL,
-            "endpoints": ["/health", "/api/test/web", "/api/test/api",
-                          "/api/chat", "/api/analyse", "/docs"]}
+            "endpoints": ["/health", "/api/test/web", "/api/test/api", "/api/chat",
+                          "/api/analyse", "/api/pipeline/pr", "/docs"]}
 
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "abacus_configure": bool(os.getenv("ABACUS_API_KEY"))}
+    return {"status": "ok", "version": VERSION,
+            "abacus_configure": bool(os.getenv("ABACUS_API_KEY")),
+            "pipeline_configure": bool(os.getenv("GITHUB_TOKEN") and os.getenv("PIPELINE_SECRET"))}
 
 
 @app.post("/api/chat")
 async def chat(req: ChatRequest):
     """Discussion avec l'agent Abacus.AI (historique complet passé à chaque appel)."""
-    reply = await ask_agent([m.model_dump() for m in req.messages])
+    messages = [m.model_dump() for m in req.messages]
+    if req.mode_dev and messages[-1]["is_user"]:
+        messages[-1]["text"] = f"{DEV_INSTRUCTION}\n\n{messages[-1]['text']}"
+    reply = await ask_agent(messages)
     return {"reponse": reply}
+
+
+@app.post("/api/pipeline/pr")
+async def pipeline_pr(req: PipelineRequest, x_pipeline_secret: Optional[str] = Header(None)):
+    """Transforme le code fourni par l'agent Abacus en Pull Request GitHub."""
+    files, rejected = extract_files(req.texte)
+    if not files:
+        raise HTTPException(400, "Aucun fichier détecté : chaque bloc de code doit indiquer son "
+                                 "chemin (ex. ```python server/exemple.py)."
+                                 + (f" Chemins refusés : {', '.join(rejected)}" if rejected else ""))
+    if req.dry_run:
+        return {"fichiers": list(files), "refuses": rejected}
+
+    secret, token = os.getenv("PIPELINE_SECRET"), os.getenv("GITHUB_TOKEN")
+    if not secret or not token:
+        raise HTTPException(503, "Pipeline non configuré : définissez GITHUB_TOKEN et "
+                                 "PIPELINE_SECRET sur Railway.")
+    if not x_pipeline_secret or not hmac.compare_digest(x_pipeline_secret, secret):
+        raise HTTPException(401, "Clé pipeline invalide.")
+    title = req.titre or f"Abacus : mise à jour de {', '.join(list(files)[:3])}"
+    try:
+        pr = await run_in_threadpool(create_pull_request, token, GITHUB_REPO, files, title,
+                                     req.description or "")
+    except RuntimeError as e:
+        raise HTTPException(502, str(e)) from e
+    return {**pr, "refuses": rejected}
 
 
 @app.post("/api/analyse")
