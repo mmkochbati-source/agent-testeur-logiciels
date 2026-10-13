@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agent IA Testeur de Logiciels</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>🧪 Agent IA Testeur de Logiciels</h1>
+    <p>Tests fonctionnels de sites web et d'API REST — exécutés par le backend Railway.</p>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>Discuter avec l'agent</h2>
+      <p>Décrivez ce que vous voulez tester ; l'agent construit le plan de tests et le rapport.</p>
+      <a id="agent-link" class="btn" target="_blank" rel="noopener">Ouvrir l'agent conversationnel</a>
+    </section>
+
+    <section class="card">
+      <h2>Tester une page web</h2>
+      <form id="web-form">
+        <label for="web-url">URL</label>
+        <input id="web-url" type="url" placeholder="https://exemple.com" required />
+        <label for="web-links">Nombre max. de liens à vérifier</label>
+        <input id="web-links" type="number" value="20" min="0" max="100" />
+        <button type="submit" class="btn">Lancer les tests</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Tester un endpoint d'API</h2>
+      <form id="api-form">
+        <label for="api-method">Méthode</label>
+        <select id="api-method">
+          <option>GET</option><option>POST</option><option>PUT</option>
+          <option>PATCH</option><option>DELETE</option>
+        </select>
+        <label for="api-url">URL</label>
+        <input id="api-url" type="url" placeholder="https://api.exemple.com/users" required />
+        <label for="api-status">Code HTTP attendu</label>
+        <input id="api-status" type="number" value="200" />
+        <label for="api-keys">Champs JSON attendus (séparés par des virgules)</label>
+        <input id="api-keys" type="text" placeholder="id, name, email" />
+        <label for="api-headers">En-têtes (JSON, optionnel)</label>
+        <textarea id="api-headers" rows="2" placeholder='{"Authorization": "Bearer ..."}'></textarea>
+        <label for="api-body">Corps de la requête (JSON, optionnel)</label>
+        <textarea id="api-body" rows="3" placeholder='{"email": "test@exemple.com"}'></textarea>
+        <button type="submit" class="btn">Lancer le test</button>
+      </form>
+    </section>
+
+    <section class="card" id="result-card" hidden>
+      <h2>Rapport de test</h2>
+      <div id="summary"></div>
+      <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Attendu</th><th>Obtenu</th><th>Statut</th></tr></thead>
+        <tbody id="results"></tbody>
+      </table>
+      <details><summary>Réponse brute</summary><pre id="raw"></pre></details>
+    </section>
+  </main>
+
+  <footer>Backend : <code id="backend-url"></code></footer>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
