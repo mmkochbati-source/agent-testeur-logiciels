@@ -4,7 +4,13 @@ Endpoints :
   GET  /health           -> état du service
   POST /api/test/web     -> tests fonctionnels d'une page web (statut, titre, temps, liens)
   POST /api/test/api     -> test d'un endpoint d'API REST avec assertions
+  POST /api/chat         -> discussion avec l'agent Abacus.AI
+  POST /api/analyse      -> exécute les tests puis les fait analyser par l'agent Abacus.AI
+
+Variables d'environnement : ABACUS_API_KEY (requis pour /api/chat et /api/analyse),
+ABACUS_DEPLOYMENT_ID, ALLOWED_ORIGINS, REQUEST_TIMEOUT.
 """
+import json
 import os
 import time
 from typing import Any, Optional
@@ -13,10 +19,12 @@ from urllib.parse import urljoin, urlparse
 import httpx
 from bs4 import BeautifulSoup
 from fastapi import FastAPI, HTTPException
+from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 AGENT_URL = "https://apps.abacus.ai/chatllm/?appId=5b4213162"
+ABACUS_DEPLOYMENT_ID = os.getenv("ABACUS_DEPLOYMENT_ID", "46d530766")
 TIMEOUT = float(os.getenv("REQUEST_TIMEOUT", "15"))
 USER_AGENT = "AgentTesteurLogiciels/1.0"
 
@@ -61,15 +69,78 @@ class ApiTestRequest(BaseModel):
     max_response_ms: int = Field(3000, ge=1)
 
 
+class ChatMessage(BaseModel):
+    is_user: bool
+    text: str
+
+
+class ChatRequest(BaseModel):
+    messages: list[ChatMessage] = Field(..., min_length=1)
+
+
+class AnalyseRequest(BaseModel):
+    web: Optional[WebTestRequest] = None
+    api: Optional[ApiTestRequest] = None
+
+
+def _ask_agent_sync(messages: list[dict]) -> str:
+    """Appelle l'agent Abacus.AI (ChatLLM) via le SDK officiel."""
+    if not os.getenv("ABACUS_API_KEY"):
+        raise HTTPException(503, "ABACUS_API_KEY n'est pas configurée sur le serveur.")
+    import abacusai  # import paresseux : le SDK est lourd
+
+    client = abacusai.ApiClient(api_key=os.environ["ABACUS_API_KEY"])
+    try:
+        resp = client.get_chat_response(deployment_token=None,
+                                        deployment_id=ABACUS_DEPLOYMENT_ID, messages=messages)
+    except Exception as e:  # erreurs réseau / auth du SDK
+        raise HTTPException(502, f"Erreur de l'agent Abacus.AI : {e}") from e
+    replies = [m["text"] for m in resp.get("messages", []) if not m.get("is_user")]
+    return replies[-1] if replies else ""
+
+
+async def ask_agent(messages: list[dict]) -> str:
+    return await run_in_threadpool(_ask_agent_sync, messages)
+
+
 @app.get("/")
 def root():
     return {"service": "Agent IA Testeur de Logiciels", "agent": AGENT_URL,
-            "endpoints": ["/health", "/api/test/web", "/api/test/api", "/docs"]}
+            "endpoints": ["/health", "/api/test/web", "/api/test/api",
+                          "/api/chat", "/api/analyse", "/docs"]}
 
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return {"status": "ok", "abacus_configure": bool(os.getenv("ABACUS_API_KEY"))}
+
+
+@app.post("/api/chat")
+async def chat(req: ChatRequest):
+    """Discussion avec l'agent Abacus.AI (historique complet passé à chaque appel)."""
+    reply = await ask_agent([m.model_dump() for m in req.messages])
+    return {"reponse": reply}
+
+
+@app.post("/api/analyse")
+async def analyse(req: AnalyseRequest):
+    """Exécute les tests puis demande à l'agent Abacus.AI d'analyser le rapport."""
+    if not req.web and not req.api:
+        raise HTTPException(400, "Fournissez « web » et/ou « api ».")
+    rapports = {}
+    if req.web:
+        rapports["web"] = await test_web(req.web)
+    if req.api:
+        rapports["api"] = await test_api(req.api)
+    prompt = (
+        "Voici les résultats bruts de tests fonctionnels exécutés automatiquement "
+        "(format JSON). Analyse-les : résume les résultats, explique chaque FAIL, "
+        "évalue la gravité et donne des recommandations concrètes, puis propose "
+        "des cas de test complémentaires.\n\n"
+        + json.dumps(rapports, ensure_ascii=False, default=str)[:20000]
+    )
+    analyse_ia = await ask_agent([{"is_user": True, "text": prompt}])
+    return {"rapports": rapports, "analyse_ia": analyse_ia}
 
 
 @app.post("/api/test/web")

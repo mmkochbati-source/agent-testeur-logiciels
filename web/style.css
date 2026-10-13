@@ -17,3 +17,21 @@ td.pass { color: #137a3a; font-weight: 700; }
 td.fail { color: #b3261e; font-weight: 700; }
 pre { background: #f0f2f8; padding: .8rem; overflow: auto; max-height: 300px; }
 footer { text-align: center; padding: 1.5rem; color: #6b7285; font-size: .85rem; }
+
+.actions { display: flex; gap: .6rem; flex-wrap: wrap; }
+.btn-ia { background: #7b3fd1; }
+.link { display: inline-block; margin-top: .6rem; color: #4a63d9; font-size: .9rem; }
+.chat-log { max-height: 380px; overflow-y: auto; display: flex; flex-direction: column; gap: .5rem;
+            padding: .5rem 0; }
+.chat-log:empty { display: none; }
+.bubble { padding: .6rem .8rem; border-radius: 10px; max-width: 90%; overflow-x: auto; }
+.bubble.user { align-self: flex-end; background: #4a63d9; color: #fff; }
+.bubble.agent { align-self: flex-start; background: #f0f2f8; }
+.bubble.error { background: #fde8e7; color: #b3261e; }
+.bubble p:first-child, .ia-text > :first-child { margin-top: 0; }
+.chat-form { display: flex; gap: .5rem; grid-template-columns: none; }
+.chat-form input { flex: 1; }
+.chat-form .btn { margin-top: 0; }
+.ia-text { background: #f7f4fd; border-left: 4px solid #7b3fd1; padding: .8rem 1rem; border-radius: 6px;
+           overflow-x: auto; }
+.bubble table, .ia-text table { font-size: .85rem; }

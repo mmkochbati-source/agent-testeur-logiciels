@@ -5,9 +5,9 @@
 │  web/  →  Vercel     │ ──────────▶ │  server/  →  Railway     │
 │  Interface (HTML/JS) │             │  API FastAPI (tests)     │
 └──────────────────────┘             └──────────────────────────┘
-          │ lien
-          ▼
-  Agent conversationnel Abacus.AI (appId 5b4213162)
+                                                  │ SDK abacusai (ABACUS_API_KEY)
+                                                  ▼
+                                   Agent Abacus.AI (déploiement 46d530766)
 ```
 
 ## 1. Backend sur Railway (`server/`)
@@ -24,6 +24,8 @@ Variables d'environnement (optionnelles) :
 
 | Variable | Défaut | Rôle |
 |---|---|---|
+| `ABACUS_API_KEY` | — | **Requis** pour `/api/chat` et `/api/analyse` : clé API Abacus.AI (à créer sur [abacus.ai/app/profile/apikey](https://abacus.ai/app/profile/apikey)) |
+| `ABACUS_DEPLOYMENT_ID` | `46d530766` | Déploiement de l'agent Abacus.AI appelé par le backend |
 | `ALLOWED_ORIGINS` | `*` | Domaines autorisés (CORS), ex. `https://agent-testeur.vercel.app` |
 | `REQUEST_TIMEOUT` | `15` | Délai max (s) des requêtes de test |
 
@@ -48,7 +50,9 @@ cd web && python3 -m http.server 3000   # puis http://localhost:3000
 
 | Méthode | Route | Description |
 |---|---|---|
-| GET | `/health` | État du service |
+| GET | `/health` | État du service (`abacus_configure` indique si la clé Abacus est présente) |
+| POST | `/api/chat` | `{ "messages": [{ "is_user": true, "text": "..." }] }` → `{ "reponse": "..." }` (agent Abacus.AI) |
+| POST | `/api/analyse` | `{ "web": {...} }` et/ou `{ "api": {...} }` → exécute les tests puis renvoie `rapports` + `analyse_ia` rédigée par l'agent |
 | POST | `/api/test/web` | `{ "url": "...", "max_links": 20 }` → 8 cas (accessibilité HTTP, temps, HTTPS, titre, h1, alt des images, lang, liens brisés) |
 | POST | `/api/test/api` | `{ "url", "method", "headers", "body", "expected_status", "expected_keys" }` → statut, temps, JSON, champs attendus |
 

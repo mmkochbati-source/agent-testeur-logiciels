@@ -16,7 +16,12 @@
     <section class="card">
       <h2>Discuter avec l'agent</h2>
       <p>Décrivez ce que vous voulez tester ; l'agent construit le plan de tests et le rapport.</p>
-      <a id="agent-link" class="btn" target="_blank" rel="noopener">Ouvrir l'agent conversationnel</a>
+      <div id="chat-log" class="chat-log"></div>
+      <form id="chat-form" class="chat-form">
+        <input id="chat-input" type="text" placeholder="Ex. : propose un plan de tests pour un panier e-commerce" required />
+        <button type="submit" class="btn">Envoyer</button>
+      </form>
+      <a id="agent-link" class="link" target="_blank" rel="noopener">Ouvrir l'agent en plein écran ↗</a>
     </section>
 
     <section class="card">
@@ -26,7 +31,10 @@
         <input id="web-url" type="url" placeholder="https://exemple.com" required />
         <label for="web-links">Nombre max. de liens à vérifier</label>
         <input id="web-links" type="number" value="20" min="0" max="100" />
-        <button type="submit" class="btn">Lancer les tests</button>
+        <div class="actions">
+          <button type="submit" class="btn" value="test">Lancer les tests</button>
+          <button type="submit" class="btn btn-ia" value="analyse">Tester + analyse IA</button>
+        </div>
       </form>
     </section>
 
@@ -48,7 +56,10 @@
         <textarea id="api-headers" rows="2" placeholder='{"Authorization": "Bearer ..."}'></textarea>
         <label for="api-body">Corps de la requête (JSON, optionnel)</label>
         <textarea id="api-body" rows="3" placeholder='{"email": "test@exemple.com"}'></textarea>
-        <button type="submit" class="btn">Lancer le test</button>
+        <div class="actions">
+          <button type="submit" class="btn" value="test">Lancer le test</button>
+          <button type="submit" class="btn btn-ia" value="analyse">Tester + analyse IA</button>
+        </div>
       </form>
     </section>
 
@@ -59,12 +70,18 @@
         <thead><tr><th>ID</th><th>Description</th><th>Attendu</th><th>Obtenu</th><th>Statut</th></tr></thead>
         <tbody id="results"></tbody>
       </table>
+      <div id="ia-block" hidden>
+        <h3>🤖 Analyse de l'agent IA</h3>
+        <div id="ia-text" class="ia-text"></div>
+      </div>
       <details><summary>Réponse brute</summary><pre id="raw"></pre></details>
     </section>
   </main>
 
   <footer>Backend : <code id="backend-url"></code></footer>
 
+  <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
   <script src="config.js"></script>
   <script src="app.js"></script>
 </body>
