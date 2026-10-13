@@ -1,0 +1,19 @@
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, sans-serif; background: #f4f6fb; color: #1d2433; }
+header { background: #2b3a67; color: #fff; padding: 2rem 1rem; text-align: center; }
+header h1 { margin: 0 0 .5rem; }
+main { max-width: 900px; margin: 0 auto; padding: 1rem; display: grid; gap: 1rem; }
+.card { background: #fff; border-radius: 10px; padding: 1.25rem; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+.card h2 { margin-top: 0; }
+form { display: grid; gap: .4rem; }
+label { font-weight: 600; font-size: .9rem; margin-top: .4rem; }
+input, select, textarea { padding: .55rem; border: 1px solid #cdd3e0; border-radius: 6px; font: inherit; }
+.btn { display: inline-block; margin-top: .8rem; padding: .65rem 1.1rem; background: #4a63d9; color: #fff;
+       border: 0; border-radius: 6px; font: inherit; cursor: pointer; text-decoration: none; }
+.btn:disabled { opacity: .6; cursor: wait; }
+table { width: 100%; border-collapse: collapse; margin-top: .8rem; font-size: .9rem; }
+th, td { border-bottom: 1px solid #e3e7f0; padding: .45rem; text-align: left; vertical-align: top; }
+td.pass { color: #137a3a; font-weight: 700; }
+td.fail { color: #b3261e; font-weight: 700; }
+pre { background: #f0f2f8; padding: .8rem; overflow: auto; max-height: 300px; }
+footer { text-align: center; padding: 1.5rem; color: #6b7285; font-size: .85rem; }

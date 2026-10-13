@@ -64,15 +64,27 @@ Rédige un plan de tests fonctionnels pour une page d'inscription
 ```
 .
 ├── README.md                          # Cette documentation
+├── DEPLOIEMENT.md                      # Guide Railway + Vercel
 ├── agent-config.json                  # Configuration de l'agent
+├── server/                            # API de tests (FastAPI) → Railway
+├── web/                               # Interface web (HTML/JS) → Vercel
 └── examples/
     ├── cas-de-test-web.md             # Exemples de cas de test pour un site web
     ├── cas-de-test-api.md             # Exemples de cas de test pour une API REST
     └── rapport-test-template.md       # Modèle de rapport de test
 ```
 
+## 🚀 Déploiement (Railway + Vercel)
+
+- **`server/`** : API FastAPI qui exécute réellement les tests fonctionnels (pages web et endpoints REST) et renvoie un rapport PASS/FAIL — déployée sur **Railway**.
+- **`web/`** : interface web statique qui appelle l'API et donne accès à l'agent conversationnel — déployée sur **Vercel**.
+
+Voir le guide pas à pas : [DEPLOIEMENT.md](DEPLOIEMENT.md).
+
 ## 🛠️ Stack
 
 - **Plateforme :** [Abacus.AI ChatLLM](https://apps.abacus.ai/chatllm/)
+- **Backend :** Python / FastAPI (Railway)
+- **Frontend :** HTML / CSS / JavaScript (Vercel)
 - **Langue :** Français
 - **Rôle :** Expert QA / Assurance Qualité logicielle
